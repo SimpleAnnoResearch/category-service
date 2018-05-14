@@ -9,3 +9,4 @@ In order to install this bundle in your OSGI environment, the following dependen
 * [guice 4.1.0](http://central.maven.org/maven2/com/google/inject/guice/4.1.0/guice-4.1.0.jar)
 * [guice-assistedinject 4.1.0](http://central.maven.org/maven2/com/google/inject/extensions/guice-assistedinject/4.1.0/guice-assistedinject-4.1.0.jar)
 * [guice-multibindings 4.1.0](http://central.maven.org/maven2/com/google/inject/extensions/guice-multibindings/4.1.0/guice-multibindings-4.1.0.jar)
+* [mimepull 1.9.3](http://central.maven.org/maven2/org/jvnet/mimepull/mimepull/1.9.3/mimepull-1.9.3.jar)
