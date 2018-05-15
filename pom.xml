@@ -30,7 +30,7 @@
             <plugin>
                 <groupId>org.apache.felix</groupId>
                 <artifactId>maven-scr-plugin</artifactId>
-                <version>1.12.0</version>
+                <version>1.26.0</version>
                 <executions>
                     <execution>
                         <id>generate-scr-scrdescriptor</id>
@@ -44,7 +44,23 @@
                 <groupId>org.apache.felix</groupId>
                 <artifactId>maven-bundle-plugin</artifactId>
                 <extensions>true</extensions>
-                <version>2.3.7</version>
+                <version>3.5.0</version>
+                <configuration>
+                    <instructions>
+                        <!--Bundle-ClassPath>.,{maven-dependencies}</Bundle-ClassPath-->
+                        <!--Include-Resource>{maven-dependencies}</Include-Resource-->
+                        <Embed-Dependency>pellet*,aterm*,antlr*,stringtemplate,jgrapht*,jjtraveler*,jersey-media-multipart;scope=compile|runtime</Embed-Dependency>
+                        <Embed-Transitive>true</Embed-Transitive>
+                        <Import-Package>
+                            !com.touchgraph.graphlayout,
+                            !com.touchgraph.graphlayout.*,
+                            !org.jgraph,
+                            !org.jgraph.*,
+                            !shared,
+                            *
+                        </Import-Package>
+                    </instructions>
+                </configuration>
             </plugin>
         </plugins>
     </build>
@@ -105,6 +121,7 @@
             <artifactId>org.apache.felix.scr.annotations</artifactId>
             <version>1.9.2</version>
         </dependency>
+
         <dependency>
             <groupId>net.sourceforge.owlapi</groupId>
             <artifactId>owlapi-osgidistribution</artifactId>
@@ -121,15 +138,44 @@
                 </exclusion>
             </exclusions>
         </dependency>
+        <!-- https://mvnrepository.com/artifact/com.github.ansell.aterms/aterm-java -->
         <dependency>
-            <groupId>com.sun.jersey</groupId>
-            <artifactId>jersey-server</artifactId>
-            <version>1.6</version>
+            <groupId>com.github.ansell.aterms</groupId>
+            <artifactId>aterm-java</artifactId>
+            <version>1.8.2</version>
         </dependency>
         <dependency>
-            <groupId>com.sun.jersey.contribs</groupId>
-            <artifactId>jersey-multipart</artifactId>
-            <version>1.6</version>
+            <groupId>org.antlr</groupId>
+            <artifactId>antlr-runtime</artifactId>
+            <version>3.4</version>
+        </dependency>
+        <dependency>
+            <groupId>org.antlr</groupId>
+            <artifactId>stringtemplate</artifactId>
+            <version>3.2.1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jgrapht</groupId>
+            <artifactId>jgrapht-jdk1.5</artifactId>
+            <version>0.7.3</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.ansell.jjtraveler</groupId>
+            <artifactId>jjtraveler</artifactId>
+            <version>0.6</version>
+        </dependency>
+
+
+
+        <dependency>
+            <groupId>org.glassfish.jersey.core</groupId>
+            <artifactId>jersey-server</artifactId>
+            <version>2.7</version>
+        </dependency>
+        <dependency>
+            <groupId>org.glassfish.jersey.media</groupId>
+            <artifactId>jersey-media-multipart</artifactId>
+            <version>2.7</version>
         </dependency>
     </dependencies>
     

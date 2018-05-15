@@ -2,7 +2,6 @@ package de.unileipzig.imise.ontomed.simpleanno;
 
 import com.clarkparsia.pellet.owlapiv3.PelletReasoner;
 import com.clarkparsia.pellet.owlapiv3.PelletReasonerFactory;
-import com.sun.jersey.multipart.FormDataParam;
 import org.apache.clerezza.commons.rdf.Graph;
 import org.apache.clerezza.commons.rdf.IRI;
 import org.apache.clerezza.commons.rdf.impl.utils.PlainLiteralImpl;
@@ -21,7 +20,11 @@ import org.apache.stanbol.entityhub.model.clerezza.RdfValueFactory;
 import org.apache.stanbol.entityhub.servicesapi.model.Entity;
 import org.apache.stanbol.entityhub.servicesapi.model.Representation;
 import org.apache.stanbol.entityhub.servicesapi.site.SiteManager;
+import org.glassfish.jersey.media.multipart.FormDataBodyPart;
+import org.glassfish.jersey.media.multipart.FormDataMultiPart;
+import org.glassfish.jersey.media.multipart.MultiPartFeature;
 import org.osgi.framework.BundleContext;
+import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.component.ComponentContext;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.io.FileDocumentSource;
@@ -83,6 +86,8 @@ public class CategoryService {
     ).map(s -> new OWLClassImpl(org.semanticweb.owlapi.model.IRI.create(s))).collect(Collectors.toMap(c -> c, c -> 0));
 
     private static final Logger log = LoggerFactory.getLogger(CategoryService.class);
+
+    private ServiceRegistration registration;
     
     /**
      * This service allows to get entities from configures sites
@@ -123,6 +128,8 @@ public class CategoryService {
 
         this.bundleContext = context.getBundleContext();
 
+        registration = bundleContext.registerService( MultiPartFeature.class, new MultiPartFeature(), null );
+
 
         // load the CCO ontology from the Stanbol OntoNet
         // OWLOntology ccoOntology = onManager.getScope("CCO").getCustomSpace().getOntology(new OWLOntologyID())
@@ -135,6 +142,9 @@ public class CategoryService {
     @Deactivate
     protected void deactivate(ComponentContext context) {
         log.info("Deactivating SimpleAnno category service");
+        if( registration != null ) {
+            registration.unregister();
+        }
     }
 
     /**
@@ -181,10 +191,13 @@ public class CategoryService {
 
     @POST
     @Consumes(MediaType.MULTIPART_FORM_DATA)
-    public Response handleUpload(@FormDataParam("file") InputStream in) throws Exception {
+    public Response handleUpload(FormDataMultiPart multiPart) throws Exception {
+        FormDataBodyPart bodyPart = multiPart.getField("file");
+        InputStream body = bodyPart.getValueAs(InputStream.class);
+
         OWLOntologyManager om = OWLManager.createOWLOntologyManager();
         try {
-            OWLOntology onto = om.loadOntologyFromOntologyDocument(in);
+            OWLOntology onto = om.loadOntologyFromOntologyDocument(body);
             String ontologyID = onto.getOntologyID().getOntologyIRI().toString();
             if (ontologyID.equals("http://simple-anno.de/ontologies/dental_care_process")) {
                 om.saveOntology(onto, new FileOutputStream(ccoOntologyFile));
