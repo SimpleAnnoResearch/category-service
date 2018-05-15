@@ -6,6 +6,10 @@ import org.apache.clerezza.commons.rdf.Graph;
 import org.apache.clerezza.commons.rdf.IRI;
 import org.apache.clerezza.commons.rdf.impl.utils.PlainLiteralImpl;
 import org.apache.clerezza.jaxrs.utils.TrailingSlash;
+import org.apache.clerezza.jaxrs.utils.form.FormFile;
+import org.apache.clerezza.jaxrs.utils.form.MultiPartBody;
+import org.apache.clerezza.jaxrs.utils.form.ParameterValue;
+import org.apache.clerezza.jaxrs.utils.form.StringParameterValue;
 import org.apache.clerezza.rdf.core.access.EntityAlreadyExistsException;
 import org.apache.clerezza.rdf.core.access.TcManager;
 import org.apache.clerezza.rdf.core.access.security.TcAccessController;
@@ -20,14 +24,13 @@ import org.apache.stanbol.entityhub.model.clerezza.RdfValueFactory;
 import org.apache.stanbol.entityhub.servicesapi.model.Entity;
 import org.apache.stanbol.entityhub.servicesapi.model.Representation;
 import org.apache.stanbol.entityhub.servicesapi.site.SiteManager;
-import org.glassfish.jersey.media.multipart.FormDataBodyPart;
-import org.glassfish.jersey.media.multipart.FormDataMultiPart;
 import org.glassfish.jersey.media.multipart.MultiPartFeature;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.component.ComponentContext;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.io.FileDocumentSource;
+import org.semanticweb.owlapi.io.ReaderDocumentSource;
 import org.semanticweb.owlapi.model.*;
 import org.semanticweb.owlapi.util.SimpleIRIMapper;
 import org.slf4j.Logger;
@@ -39,9 +42,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.InputStream;
+import java.io.*;
 import java.security.Permission;
 import java.util.Collections;
 import java.util.Map;
@@ -191,14 +192,32 @@ public class CategoryService {
 
     @POST
     @Consumes(MediaType.MULTIPART_FORM_DATA)
-    public Response handleUpload(FormDataMultiPart multiPart) throws Exception {
-        FormDataBodyPart bodyPart = multiPart.getField("file");
-        InputStream body = bodyPart.getValueAs(InputStream.class);
+    public Response uploadOntologyFile(MultiPartBody data) throws Exception {
+//        FormDataBodyPart bodyPart = data.getField("file");
+
+        Reader body;
+
+        FormFile[] sentFiles = data.getFormFileParameterValues("file");
+        if (sentFiles.length != 0) {
+            FormFile file = sentFiles[0];
+            body = new InputStreamReader(new ByteArrayInputStream(file.getContent()));
+        } else {
+            ParameterValue[] paramValues = data.getParameteValues("file");
+            if (paramValues.length != 0) {
+                StringParameterValue fileValue = (StringParameterValue) paramValues[0];
+                body = new StringReader(fileValue.toString());
+            } else {
+                return Response.status(Response.Status.BAD_REQUEST).build();
+            }
+        }
+
+
+//        InputStream body = bodyPart.getValueAs(InputStream.class);
 
         OWLOntologyManager om = OWLManager.createOWLOntologyManager();
         try {
-            OWLOntology onto = om.loadOntologyFromOntologyDocument(body);
-            String ontologyID = onto.getOntologyID().getOntologyIRI().toString();
+            OWLOntology onto = om.loadOntologyFromOntologyDocument(new ReaderDocumentSource(body), new OWLOntologyLoaderConfiguration().setMissingImportHandlingStrategy(MissingImportHandlingStrategy.SILENT));
+            String ontologyID = onto.getOntologyID().getOntologyIRI().get().toString();
             if (ontologyID.equals("http://simple-anno.de/ontologies/dental_care_process")) {
                 om.saveOntology(onto, new FileOutputStream(ccoOntologyFile));
             } else if (ontologyID.equals("http://glodmed.simple-anno.de/glodmed#")) {
