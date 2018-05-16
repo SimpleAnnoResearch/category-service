@@ -34,8 +34,11 @@ import org.semanticweb.owlapi.io.ReaderDocumentSource;
 import org.semanticweb.owlapi.model.*;
 import org.semanticweb.owlapi.model.parameters.Imports;
 import org.semanticweb.owlapi.util.SimpleIRIMapper;
+import org.semanticweb.owlapi.vocab.OWLRDFVocabulary;
+import org.semanticweb.owlapi.vocab.SKOSVocabulary;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import uk.ac.manchester.cs.owl.owlapi.OWLAnnotationPropertyImpl;
 import uk.ac.manchester.cs.owl.owlapi.OWLClassImpl;
 
 import javax.swing.text.html.Option;
@@ -192,6 +195,17 @@ public class CategoryService {
         return new RdfViewable("CategoryService", node, CategoryService.class);
     }
 
+    /**
+     * Returns a response with HTTP status code 200 containing the IRI of the top category of the category with the given IRI in the response body.
+     * Returns a response with with HTTP status code 200 and the text "- NO TOP CATEGORY -" in the response body if no top category is defined for the
+     * given category.
+     * Returns a response with HTTP status code other than 200 is an error occurs.
+     * @param uriInfo
+     * @param iri
+     * @param userAgent
+     * @return
+     * @throws Exception
+     */
     @GET
     @Produces("text/plain")
     public Response getIRI(@Context final UriInfo uriInfo,
@@ -218,6 +232,61 @@ public class CategoryService {
         } else {
             return Response.ok("- NO TOP CATEGORY -").build();
         }
+    }
+
+    /**
+     * Returns a response with HTTP status code 200 containing the label of the top category of the category with the given IRI in the given language in the response body.
+     * Returns a response with with HTTP status code 200 and the text "- NO TOP CATEGORY -" in the response body if no top category is defined for the
+     * given category.
+     * Returns a response with HTTP status code other than 200 is an error occurs.
+     * @param uriInfo
+     * @param iri
+     * @param lang
+     * @param userAgent
+     * @return
+     * @throws Exception
+     */
+    @GET
+    @Path("category/label")
+    @Produces("text/plain")
+    public Response getLabel(@Context final UriInfo uriInfo,
+                           @QueryParam("iri") final IRI iri,
+                           @QueryParam("lang") final String lang,
+                           @HeaderParam("user-agent") String userAgent) throws Exception {
+        if (!ccoOntologyFile.exists() && !glodmedOntologyFile.exists()) {
+            return Response.status(Response.Status.SERVICE_UNAVAILABLE).entity("No ontology. Please upload the CCO and GLODMED ontologies.").build();
+        }
+        if (!ccoOntologyFile.exists()) {
+            return Response.status(Response.Status.SERVICE_UNAVAILABLE).entity("No CCO ontology. Please upload the CCO ontology.").build();
+        }
+        if (!glodmedOntologyFile.exists()) {
+            return Response.status(Response.Status.SERVICE_UNAVAILABLE).entity("No GLODMED ontology. Please upload the GLODMED ontology.").build();
+        }
+
+        OWLClass clazz = new OWLClassImpl(org.semanticweb.owlapi.model.IRI.create(iri.getUnicodeString()));
+        if (!ccoOntology.containsClassInSignature(clazz.getIRI(), Imports.INCLUDED)) {
+            return Response.status(Response.Status.BAD_REQUEST).entity(String.format("The ontology does not contain a class with IRI %s.", iri)).build();
+        }
+
+        Optional<OWLClass> topClass = getTopClass(clazz, reasoner);
+        if (topClass.isPresent()) {
+            return Response.ok(getLabel(topClass.get(), lang)).build();
+        } else {
+            return Response.ok("- NO TOP CATEGORY -").build();
+        }
+    }
+
+    private String getLabel(OWLClass cls, String lang) {
+        StringBuilder buf = new StringBuilder();
+        ccoOntology.annotationAssertionAxioms(cls.getIRI(), Imports.INCLUDED).filter(
+                annotationAxiom -> (annotationAxiom.getProperty().getIRI().equals(SKOSVocabulary.PREFLABEL.getIRI())
+                        || annotationAxiom.getProperty().getIRI().equals(OWLRDFVocabulary.RDFS_LABEL.getIRI()))
+        && annotationAxiom.getValue().isLiteral()
+        && ((OWLLiteral)annotationAxiom.getValue()).hasLang(lang)).forEach(annotationAxiom -> {
+            buf.append(((OWLLiteral)annotationAxiom.getValue()).getLiteral());
+            buf.append("\n");
+        });
+        return buf.toString();
     }
 
     @POST
