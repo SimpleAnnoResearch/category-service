@@ -15,6 +15,13 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
+    <repositories>
+        <repository>
+            <id>localrepository</id>
+            <url>file://${basedir}/repo</url>
+        </repository>
+    </repositories>
+
     <build>
         <!-- make it an OSGi bundle -->
         <plugins>
@@ -146,7 +153,7 @@
         <dependency>
             <groupId>com.github.ansell.aterms</groupId>
             <artifactId>shared-objects</artifactId>
-            <version>1.4.9</version>
+            <version>1.4.9-fixed</version>
         </dependency>
         <dependency>
             <groupId>org.antlr</groupId>
