@@ -49,14 +49,13 @@
                     <instructions>
                         <!--Bundle-ClassPath>.,{maven-dependencies}</Bundle-ClassPath-->
                         <!--Include-Resource>{maven-dependencies}</Include-Resource-->
-                        <Embed-Dependency>pellet*,aterm*,antlr*,stringtemplate,jgrapht*,jjtraveler*,jersey-media-multipart;scope=compile|runtime</Embed-Dependency>
+                        <Embed-Dependency>pellet*,aterm*,antlr*,stringtemplate,jgrapht*,jjtraveler*,jersey-media-multipart,shared-objects;scope=compile|runtime</Embed-Dependency>
                         <Embed-Transitive>true</Embed-Transitive>
                         <Import-Package>
                             !com.touchgraph.graphlayout,
                             !com.touchgraph.graphlayout.*,
                             !org.jgraph,
                             !org.jgraph.*,
-                            !shared,
                             *
                         </Import-Package>
                     </instructions>
@@ -143,6 +142,11 @@
             <groupId>com.github.ansell.aterms</groupId>
             <artifactId>aterm-java</artifactId>
             <version>1.8.2</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.ansell.aterms</groupId>
+            <artifactId>shared-objects</artifactId>
+            <version>1.4.9</version>
         </dependency>
         <dependency>
             <groupId>org.antlr</groupId>
