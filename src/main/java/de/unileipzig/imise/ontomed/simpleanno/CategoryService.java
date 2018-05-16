@@ -32,11 +32,13 @@ import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.io.FileDocumentSource;
 import org.semanticweb.owlapi.io.ReaderDocumentSource;
 import org.semanticweb.owlapi.model.*;
+import org.semanticweb.owlapi.model.parameters.Imports;
 import org.semanticweb.owlapi.util.SimpleIRIMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.ac.manchester.cs.owl.owlapi.OWLClassImpl;
 
+import javax.swing.text.html.Option;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
@@ -105,6 +107,8 @@ public class CategoryService {
     private BundleContext bundleContext;
 
     private File ccoOntologyFile, glodmedOntologyFile;
+
+    private OWLOntology ccoOntology;
     private PelletReasoner reasoner;
     
     /**
@@ -137,7 +141,7 @@ public class CategoryService {
         ccoOntologyFile = bundleContext.getDataFile("cco.owl");
         glodmedOntologyFile = bundleContext.getDataFile("glodmed.owl");
 
-
+        reloadOntology();
     }
     
     @Deactivate
@@ -149,7 +153,7 @@ public class CategoryService {
     }
 
     /**
-     * This method return an RdfViewable, this is an RDF serviceUri with associated
+     * This method returns an RdfViewable, this is an RDF serviceUri with associated
      * presentational information.
      */
     @GET
@@ -172,9 +176,17 @@ public class CategoryService {
         //i.e. to the in-memory responseGraph
         node.addProperty(RDF.type, Ontology.ResourceResolver);
         node.addProperty(RDFS.comment, new PlainLiteralImpl("A RDFTerm Resolver"));
-        if (iri != null) {
-            node.addProperty(Ontology.describes, iri);
-            addResourceDescription(iri, responseGraph);
+        if (iri != null && ccoOntology != null) {
+            OWLClass clazz = new OWLClassImpl(org.semanticweb.owlapi.model.IRI.create(iri.getUnicodeString()));
+            if (ccoOntology.containsClassInSignature(clazz.getIRI(), Imports.INCLUDED)) {
+                Optional<OWLClass> topClass = getTopClass(clazz, reasoner);
+
+                if (topClass.isPresent()) {
+                    IRI topClassIRI = new IRI(topClass.get().getIRI().toString());
+                    node.addProperty(Ontology.describes, topClassIRI);
+                    addResourceDescription(topClassIRI, responseGraph);
+                }
+            }
         }
         //What we return is the GraphNode we created with a template path
         return new RdfViewable("CategoryService", node, CategoryService.class);
@@ -182,18 +194,35 @@ public class CategoryService {
 
     @GET
     @Produces("text/plain")
-    public String getIRI(@Context final UriInfo uriInfo,
+    public Response getIRI(@Context final UriInfo uriInfo,
             @QueryParam("iri") final IRI iri,
             @HeaderParam("user-agent") String userAgent) throws Exception {
-        if (iri == null)
-            return "";
-        return iri.getUnicodeString() + "-test";
+        if (!ccoOntologyFile.exists() && !glodmedOntologyFile.exists()) {
+            return Response.status(Response.Status.SERVICE_UNAVAILABLE).entity("No ontology. Please upload the CCO and GLODMED ontologies.").build();
+        }
+        if (!ccoOntologyFile.exists()) {
+            return Response.status(Response.Status.SERVICE_UNAVAILABLE).entity("No CCO ontology. Please upload the CCO ontology.").build();
+        }
+        if (!glodmedOntologyFile.exists()) {
+            return Response.status(Response.Status.SERVICE_UNAVAILABLE).entity("No GLODMED ontology. Please upload the GLODMED ontology.").build();
+        }
+
+        OWLClass clazz = new OWLClassImpl(org.semanticweb.owlapi.model.IRI.create(iri.getUnicodeString()));
+        if (!ccoOntology.containsClassInSignature(clazz.getIRI(), Imports.INCLUDED)) {
+            return Response.status(Response.Status.BAD_REQUEST).entity(String.format("The ontology does not contain a class with IRI %s.", iri)).build();
+        }
+
+        Optional<OWLClass> topClass = getTopClass(clazz, reasoner);
+        if (topClass.isPresent()) {
+            return Response.ok(topClass.get().getIRI()).build();
+        } else {
+            return Response.ok("- NO TOP CATEGORY -").build();
+        }
     }
 
     @POST
     @Consumes(MediaType.MULTIPART_FORM_DATA)
     public Response uploadOntologyFile(MultiPartBody data) throws Exception {
-//        FormDataBodyPart bodyPart = data.getField("file");
 
         Reader body;
 
@@ -207,12 +236,9 @@ public class CategoryService {
                 StringParameterValue fileValue = (StringParameterValue) paramValues[0];
                 body = new StringReader(fileValue.toString());
             } else {
-                return Response.status(Response.Status.BAD_REQUEST).build();
+                return Response.status(Response.Status.BAD_REQUEST).entity("There was no ontology file with field name 'file' in the request body.").build();
             }
         }
-
-
-//        InputStream body = bodyPart.getValueAs(InputStream.class);
 
         OWLOntologyManager om = OWLManager.createOWLOntologyManager();
         try {
@@ -223,11 +249,13 @@ public class CategoryService {
             } else if (ontologyID.equals("http://glodmed.simple-anno.de/glodmed#")) {
                 om.saveOntology(onto, new FileOutputStream(glodmedOntologyFile));
             } else {
-                return Response.status(Response.Status.BAD_REQUEST).build();
+                return Response.status(Response.Status.BAD_REQUEST).entity("Unexpected ontology ID (expected: <http://simple-anno.de/ontologies/dental_care_process> or <http://glodmed.simple-anno.de/glodmed#>)").build();
             }
+            reloadOntology();
             return Response.ok().build();
         } catch (OWLOntologyCreationException ex) {
-            return Response.status(Response.Status.BAD_REQUEST).build();
+            log.error("Error while saving ontology file.", ex);
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity("An error occured. " + ex.getMessage()).build();
         }
     }
 
@@ -250,6 +278,15 @@ public class CategoryService {
         }
     }
 
+
+    /**
+     *
+     * @param c an owl class
+     * @param reasoner a pellet reasoner instance which is expected to be initialized with the CCO and imported GLODMED
+     *                 ontology.
+     * @return An Optional containing the top class of the given class according to the above table or Optional.empty()
+     * if no such top class exists.
+     */
     private Optional<OWLClass> getTopClass(OWLClass c, PelletReasoner reasoner) {
         if (topClassHits.keySet().contains(c)) {
             // found a top class, we're done
@@ -267,13 +304,22 @@ public class CategoryService {
 
 
     /**
-     * Loads the ontology from the OSGI bundle's persistent storage.
+     * (Re-)loads the ontologies from the OSGI bundle's persistent storage and initializes the reasoner.
      */
-    private void loadOntology() throws OWLOntologyCreationException {
+    private void reloadOntology() {
+        if (!(ccoOntologyFile.exists() && glodmedOntologyFile.exists())) {
+            // There's no use in reloading if one of the two ontology files is missing.
+            return;
+        }
+
         OWLOntologyManager man = OWLManager.createOWLOntologyManager();
         man.setIRIMappers(Stream.of(new SimpleIRIMapper(org.semanticweb.owlapi.model.IRI.create("http://glodmed.simple-anno.de/glodmed#"), org.semanticweb.owlapi.model.IRI.create(glodmedOntologyFile))).collect(Collectors.toSet()));
-        OWLOntology onto = man.loadOntologyFromOntologyDocument(new FileDocumentSource(ccoOntologyFile), new OWLOntologyLoaderConfiguration());
-        reasoner = PelletReasonerFactory.getInstance().createReasoner(onto);
+        try {
+            ccoOntology = man.loadOntologyFromOntologyDocument(new FileDocumentSource(ccoOntologyFile), new OWLOntologyLoaderConfiguration());
+            reasoner = PelletReasonerFactory.getInstance().createReasoner(ccoOntology);
+        } catch (OWLOntologyCreationException e) {
+            log.error("Error reloading ontologies", e);
+        }
     }
 
 }

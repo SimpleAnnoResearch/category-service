@@ -46,17 +46,14 @@
                 </div>
             </@ldpath>
         </#if>
-        <h2>Logged Requests for this Entity</h2>
-        <ol>
-            <@ldpath path="^ont:requestedEntity">
-                <li class="LoggedRequest">
-                    Date: <@ldpath path="dc:date"/><br/>
-                    Agent: <@ldpath path="ont:userAgent"/><br/>
-                </li>
-            </@ldpath>
-        </ol>
+        <h2>Upload CCO or GLODMED Ontology</h2>
         </p>
     </@ldpath>
+    <form action="<@ldpath path="."/>" method="post" enctype="multipart/form-data">
+        Select the CCO or GLODMED ontology file<br/>
+        <label for="file" /><input type="file" name="file" /><br/>
+        <input type="submit" value="Upload" />
+    </form>
     <#include "/html/includes/footer.ftl">
   </body>
 </html>
