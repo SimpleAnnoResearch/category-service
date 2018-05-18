@@ -176,7 +176,13 @@
             <version>0.6</version>
         </dependency>
 
-
+        <!-- (Ralph) We embed the guava dependency although guava is OSGI enabled because otherwise there is a conflict
+         with stanbol's dependency on an older version of guava
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>20.0</version>
+        </dependency-->
 
         <dependency>
             <groupId>org.glassfish.jersey.core</groupId>

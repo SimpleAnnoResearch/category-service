@@ -136,7 +136,7 @@ public class CategoryService {
 
         this.bundleContext = context.getBundleContext();
 
-        registration = bundleContext.registerService( MultiPartFeature.class, new MultiPartFeature(), null );
+//        registration = bundleContext.registerService( MultiPartFeature.class, new MultiPartFeature(), null );
 
 
         // load the CCO ontology from the Stanbol OntoNet
@@ -228,7 +228,7 @@ public class CategoryService {
 
         Optional<OWLClass> topClass = getTopClass(clazz, reasoner);
         if (topClass.isPresent()) {
-            return Response.ok(topClass.get().getIRI()).build();
+            return Response.ok(topClass.get().getIRI().getIRIString()).build();
         } else {
             return Response.ok("- NO TOP CATEGORY -").build();
         }
@@ -247,7 +247,7 @@ public class CategoryService {
      * @throws Exception
      */
     @GET
-    @Path("category/label")
+    @Path("label")
     @Produces("text/plain")
     public Response getLabel(@Context final UriInfo uriInfo,
                            @QueryParam("iri") final IRI iri,
@@ -277,6 +277,7 @@ public class CategoryService {
     }
 
     private String getLabel(OWLClass cls, String lang) {
+        String actualLang = lang == null || lang.isEmpty() ? "de" : lang;
         StringBuilder buf = new StringBuilder();
         ccoOntology.annotationAssertionAxioms(cls.getIRI(), Imports.INCLUDED).filter(
                 annotationAxiom -> (annotationAxiom.getProperty().getIRI().equals(SKOSVocabulary.PREFLABEL.getIRI())
