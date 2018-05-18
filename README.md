@@ -21,19 +21,19 @@ Once installed and activated the bundle will provide a REST service endpoint at 
 
 *Important:* In order to use the service you first need to upload the CCO and the GLODMED ontology files, which we cannot publish here for copyright reasons. If you open http://localhost:8080/category in your browser you will be provided a file upload form which you can use for uploading the two ontology files. The service will only work after you have uploaded both ontology files. The order in which you upload the two files is not important.
 
-# Using the serice
+# Using the Service
 
 In the following paragraphs, we assume that stanbol is running on your local machine and is reachable via calling http//localhost:8080. If your stanbol installation is on a different machine or uses a different port, replace the host address and port accordingly.
 
-## HTML interface
+## HTML Interface
 
 Navigate your web browser to http://localhost:8080/category. From the web page, you can either look up a top catagory by entering a catagory IRI into the text field and pressing the "look up" button. If a top category exists it will be displayed along with a description of the top catgory, if available.
 
-### Uploading the ontology files
+### Uploading the Ontology Files
 
 The web page also contains the upload form for the two ontology files, which are necessary for the operation of the service. For instructions on how to upload the ontology files, please refer to the "Installation" section above.
 
-## Looking up a top category IRI
+## Looking Up a Top Category IRI
 
 In order to use the service in order to retrieve the plain top category IRI, call the same URL http://localhost:8080/category.
 
@@ -51,7 +51,7 @@ The following HTTP headers need to be set:
 
 Note that special characters (such as the hashmark) in the IRI need to be URL encoded.
 
-## Looking up the label(s) of a top category
+## Looking Up the Label(s) of a Top Category
 
 In order to get back the labels instead of a IRI, call http://localhost:8080/category/label
 
