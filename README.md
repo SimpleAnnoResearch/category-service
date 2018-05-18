@@ -47,7 +47,7 @@ The following HTTP headers need to be set:
 
 *Example:*
 
-`curl -H "Accept: text/plain" http://stanbol.simple-anategory/?iri=http://glodmed.simple-anno.de/glodmed%232746`
+`curl -H "Accept: text/plain" http://localhost:8080/category?iri=http://glodmed.simple-anno.de/glodmed%232746`
 
 Note that special characters (such as the hashmark) in the IRI need to be URL encoded.
 
@@ -66,7 +66,7 @@ The following HTTP headers need to be set:
 
 *Example:*
 
-`curl -H "Accept: text/plain" http://stanbol.simple-anategory/label?iri=http://glodmed.simple-anno.de/glodmed%232746?lang=en`
+`curl -H "Accept: text/plain" http://localhost:8080/category/label?iri=http://glodmed.simple-anno.de/glodmed%232746?lang=en`
 
 # Developer Notes
 
