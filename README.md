@@ -23,7 +23,7 @@ Once installed and activated the bundle will provide a REST service endpoint at 
 
 # Using the Service
 
-In the following paragraphs, we assume that stanbol is running on your local machine and is reachable via calling http//localhost:8080. If your stanbol installation is on a different machine or uses a different port, replace the host address and port accordingly.
+In the following paragraphs, we assume that stanbol is running on your local machine and is reachable via calling http://localhost:8080. If your stanbol installation is on a different machine or uses a different port, replace the host address and port accordingly.
 
 ## HTML Interface
 
