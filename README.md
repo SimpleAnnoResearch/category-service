@@ -13,6 +13,14 @@ Before you install the category service bundle in your OSGI environment, the fol
 * [guice-multibindings 4.1.0](http://central.maven.org/maven2/com/google/inject/extensions/guice-multibindings/4.1.0/guice-multibindings-4.1.0.jar)
 * [mimepull 1.9.3](http://central.maven.org/maven2/org/jvnet/mimepull/mimepull/1.9.3/mimepull-1.9.3.jar)
 
+To avoid problems with guava version incompatiblities install the Apache Felix GoGo Shell and install the 
+guava 20.0 using the following command
+ 
+
+    felix:install http://central.maven.org/maven2/com/google/guava/guava/20.0/guava-20.0.jar (*)
+
+(* a proper working network connection is required!)
+
 ## Installing the Category Service bundle
 
 Download the [latest binary release](https://github.com/SimpleAnnoResearch/category-service/releases). All our binary release files are OSGI bundles. Install the bundle using the felix console of your Stanbol installation by pointing your browser to the URL http://localhost:8080/system/console/bundles and clicking on the "Install/Update" button. Select the bundle and install it. Make sure to also activate it.
