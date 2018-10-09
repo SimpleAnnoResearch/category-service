@@ -16,6 +16,7 @@ import javax.ws.rs.core.UriInfo;
 
 /**
  * @author Matthias Muenzner <matthias.muenzner@jkaref.com>
+ * TODO Ralph: Separate ontology upload and specific services. Rename project to SimpleAnno-Services
  */
 public interface CategoryService {
     /**
@@ -61,11 +62,22 @@ public interface CategoryService {
     @Path("label")
     @Produces("text/plain")
     Response getLabel(@Context UriInfo uriInfo,
+            	      @QueryParam("scope") final String scopeID,
                       @QueryParam("iri") IRI iri,
                       @QueryParam("lang") String lang,
                       @HeaderParam("user-agent") String userAgent) throws Exception;
+    
+    @GET
+    @Path("query")
+    @Produces("application/json")
+    public Response executeDLQuery(@Context final UriInfo uriInfo,
+				         @QueryParam("scope") final String scopeID,
+				         @QueryParam("type") final String type,
+		                 @QueryParam("dlquery") final String query,
+		                 @HeaderParam("user-agent") String userAgent) throws Exception;
 
-    @POST
-    @Consumes(MediaType.MULTIPART_FORM_DATA)
-    Response uploadOntologyFile(MultiPartBody data) throws Exception;
+
+//    @POST
+//    @Consumes(MediaType.MULTIPART_FORM_DATA)
+//    Response uploadOntologyFile(MultiPartBody data) throws Exception;
 }

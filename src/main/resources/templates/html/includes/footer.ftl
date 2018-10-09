@@ -1,1 +1,1 @@
-<div>Thank you for trying out this example application.</div>
+<div><a href="http://simple-anno.de">SimpleAnno</a></div>

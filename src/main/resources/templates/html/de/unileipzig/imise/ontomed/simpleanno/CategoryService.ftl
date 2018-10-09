@@ -19,6 +19,8 @@
         <input type="submit" value="look up" />
     </form>
 
+    <@ldpath path="
+
     <@ldpath path="ont:describes">
         <p>
         Note: you can also get an rdf representation of this description 
@@ -50,8 +52,12 @@
         </p>
     </@ldpath>
     <form action="<@ldpath path="."/>" method="post" enctype="multipart/form-data">
-        Select the CCO or GLODMED ontology file<br/>
-        <label for="file" /><input type="file" name="file" /><br/>
+        Select the ontology files<br/>
+        <!--label for="cco">CCO</label><input type="file" name="cco" /><br/>
+        <label for="glodmed">GLODMED</label><input type="file" name="glodmed" /><br/>
+        <label for="locations">Anatomy Ontology</label><input type="file" name="locations" /><br/>
+        <label for="gfo">General Formal Ontology (GFO)</label><input type="file" name="gfo" /><br/-->
+         <label for="files">GLODMED</label><input type="file" name="files" multiple /><br/>
         <input type="submit" value="Upload" />
     </form>
     <#include "/html/includes/footer.ftl">
