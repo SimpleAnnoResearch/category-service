@@ -1,15 +1,27 @@
 package de.unileipzig.imise.ontomed.simpleanno;
 
-import com.clarkparsia.pellet.owlapiv3.PelletReasoner;
-import com.clarkparsia.pellet.owlapiv3.PelletReasonerFactory;
+import java.security.Permission;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import javax.ws.rs.GET;
+import javax.ws.rs.HeaderParam;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.UriInfo;
+
 import org.apache.clerezza.commons.rdf.Graph;
 import org.apache.clerezza.commons.rdf.IRI;
 import org.apache.clerezza.commons.rdf.impl.utils.PlainLiteralImpl;
 import org.apache.clerezza.jaxrs.utils.TrailingSlash;
-import org.apache.clerezza.jaxrs.utils.form.FormFile;
-import org.apache.clerezza.jaxrs.utils.form.MultiPartBody;
-import org.apache.clerezza.jaxrs.utils.form.ParameterValue;
-import org.apache.clerezza.jaxrs.utils.form.StringParameterValue;
 import org.apache.clerezza.rdf.core.access.EntityAlreadyExistsException;
 import org.apache.clerezza.rdf.core.access.TcManager;
 import org.apache.clerezza.rdf.core.access.security.TcAccessController;
@@ -17,14 +29,18 @@ import org.apache.clerezza.rdf.core.access.security.TcPermission;
 import org.apache.clerezza.rdf.ontologies.RDF;
 import org.apache.clerezza.rdf.ontologies.RDFS;
 import org.apache.clerezza.rdf.utils.GraphNode;
-import org.apache.felix.scr.annotations.*;
+import org.apache.felix.scr.annotations.Activate;
+import org.apache.felix.scr.annotations.Component;
+import org.apache.felix.scr.annotations.Deactivate;
+import org.apache.felix.scr.annotations.Property;
+import org.apache.felix.scr.annotations.Reference;
+import org.apache.felix.scr.annotations.Service;
 import org.apache.stanbol.commons.indexedgraph.IndexedGraph;
 import org.apache.stanbol.commons.web.viewable.RdfViewable;
 import org.apache.stanbol.entityhub.model.clerezza.RdfValueFactory;
 import org.apache.stanbol.entityhub.servicesapi.model.Entity;
 import org.apache.stanbol.entityhub.servicesapi.model.Representation;
 import org.apache.stanbol.entityhub.servicesapi.site.SiteManager;
-import org.apache.stanbol.ontologymanager.servicesapi.io.StoredOntologySource;
 import org.apache.stanbol.ontologymanager.servicesapi.scope.Scope;
 import org.apache.stanbol.ontologymanager.servicesapi.scope.ScopeManager;
 import org.coode.owlapi.manchesterowlsyntax.ManchesterOWLSyntaxEditorParser;
@@ -35,31 +51,22 @@ import org.osgi.service.component.ComponentContext;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.expression.OWLEntityChecker;
 import org.semanticweb.owlapi.expression.ShortFormEntityChecker;
-import org.semanticweb.owlapi.io.FileDocumentSource;
-import org.semanticweb.owlapi.io.ReaderDocumentSource;
-import org.semanticweb.owlapi.manchestersyntax.renderer.ManchesterOWLSyntaxPrefixNameShortFormProvider;
-import org.semanticweb.owlapi.model.*;
-import org.semanticweb.owlapi.model.parameters.Imports;
+import org.semanticweb.owlapi.model.OWLClass;
+import org.semanticweb.owlapi.model.OWLDataFactory;
+import org.semanticweb.owlapi.model.OWLLiteral;
+import org.semanticweb.owlapi.model.OWLOntology;
+import org.semanticweb.owlapi.model.OWLOntologyCreationException;
+import org.semanticweb.owlapi.model.OWLOntologyManager;
 import org.semanticweb.owlapi.util.BidirectionalShortFormProviderAdapter;
-import org.semanticweb.owlapi.util.SimpleIRIMapper;
-import org.semanticweb.owlapi.util.SimpleIRIShortFormProvider;
 import org.semanticweb.owlapi.vocab.OWLRDFVocabulary;
 import org.semanticweb.owlapi.vocab.SKOSVocabulary;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import uk.ac.manchester.cs.owl.owlapi.OWLClassImpl;
 
-import javax.ws.rs.*;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.UriInfo;
-import java.io.*;
-import java.net.URI;
-import java.security.Permission;
-import java.util.*;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import com.clarkparsia.pellet.owlapiv3.PelletReasoner;
+
+import uk.ac.manchester.cs.owl.owlapi.OWLClassImpl;
+import uk.ac.manchester.cs.owl.owlapi.mansyntaxrenderer.ManchesterOWLSyntaxPrefixNameShortFormProvider;
 
 /**
  * @author Ralph Schaefermeier
@@ -308,7 +315,7 @@ public class CategoryServiceImpl implements CategoryService {
         // It will generate names using the input
         // short form provider.
         BidirectionalShortFormProviderAdapter bidiShortFormProvider = new BidirectionalShortFormProviderAdapter(rootOntology.getOWLOntologyManager(),
-                importsClosure, new ManchesterOWLSyntaxPrefixNameShortFormProvider(rootOntology));
+                importsClosure, new ManchesterOWLSyntaxPrefixNameShortFormProvider(rootOntology.getOWLOntologyManager(), rootOntology));
         		
         OWLDataFactory dataFactory = rootOntology.getOWLOntologyManager()
                 .getOWLDataFactory();
