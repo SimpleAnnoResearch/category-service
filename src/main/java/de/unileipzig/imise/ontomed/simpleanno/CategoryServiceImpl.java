@@ -60,16 +60,16 @@ import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 import org.semanticweb.owlapi.model.OWLOntologyManager;
 import org.semanticweb.owlapi.util.BidirectionalShortFormProvider;
 import org.semanticweb.owlapi.util.BidirectionalShortFormProviderAdapter;
-import org.semanticweb.owlapi.util.ShortFormProvider;
+import org.semanticweb.owlapi.util.SimpleShortFormProvider;
 import org.semanticweb.owlapi.vocab.OWLRDFVocabulary;
 import org.semanticweb.owlapi.vocab.SKOSVocabulary;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.clarkparsia.pellet.owlapiv3.PelletReasoner;
+import com.clarkparsia.pellet.owlapiv3.PelletReasonerFactory;
 
 import uk.ac.manchester.cs.owl.owlapi.OWLClassImpl;
-import uk.ac.manchester.cs.owl.owlapi.mansyntaxrenderer.ManchesterOWLSyntaxPrefixNameShortFormProvider;
 
 /**
  * @author Ralph Schaefermeier
@@ -504,10 +504,12 @@ public class CategoryServiceImpl implements CategoryService {
 		
 		OWLOntology rootOntology = rootOntologiesByScope.get(scopeID);
 		if (rootOntology != null) {
+			PelletReasoner reasoner = PelletReasonerFactory.getInstance().createReasoner(rootOntology);
+			reasonersByScope.put(scopeID, reasoner);
+			rootOntology = reasoner.getRootOntology(); // don't know if this is the same ontology, but just in case.
 	        OWLOntologyManager manager = rootOntology.getOWLOntologyManager();
 	        Set<OWLOntology> importsClosure = rootOntology.getImportsClosure();
-			shortFormProviders.put(scopeID, new BidirectionalShortFormProviderAdapter(rootOntology.getOWLOntologyManager(),
-	                importsClosure, new ManchesterOWLSyntaxPrefixNameShortFormProvider(rootOntology.getOWLOntologyManager(), rootOntology)));
+			shortFormProviders.put(scopeID, new BidirectionalShortFormProviderAdapter(manager, importsClosure, new SimpleShortFormProvider()));
 		}
     }
 
