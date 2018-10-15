@@ -56,7 +56,6 @@ import org.semanticweb.owlapi.model.OWLClass;
 import org.semanticweb.owlapi.model.OWLClassExpression;
 import org.semanticweb.owlapi.model.OWLDataFactory;
 import org.semanticweb.owlapi.model.OWLEntity;
-import org.semanticweb.owlapi.model.OWLIndividual;
 import org.semanticweb.owlapi.model.OWLLiteral;
 import org.semanticweb.owlapi.model.OWLNamedIndividual;
 import org.semanticweb.owlapi.model.OWLOntology;
@@ -351,13 +350,13 @@ public class CategoryServiceImpl implements CategoryService {
         if ("instances".equalsIgnoreCase(type)) {
         	Set<OWLNamedIndividual> instances = getInstances(classExpression, reasoner, direct);
             return Response.ok(createResponseBody(instances)).build();
-        } else if ("subclasses".equalsIgnoreCase(type)) {
+        } else if ("subcategories".equalsIgnoreCase(type)) {
         	Set<OWLClass> subclasses = getSubClasses(classExpression, reasoner, direct);
             return Response.ok(createResponseBody(subclasses)).build();
-        } else if ("superclasses".equalsIgnoreCase(type)) {
+        } else if ("supercategories".equalsIgnoreCase(type)) {
         	Set<OWLClass> superclasses = getSuperClasses(classExpression, reasoner, direct);
             return Response.ok(createResponseBody(superclasses)).build();
-        } else if ("equivalentclasses".equalsIgnoreCase(type)) {
+        } else if ("equivalentcategories".equalsIgnoreCase(type)) {
         	Set<OWLClass> equivalentClasses = getEquivalentClasses(classExpression, reasoner);
             return Response.ok(createResponseBody(equivalentClasses)).build();
         } else {
@@ -399,8 +398,10 @@ public class CategoryServiceImpl implements CategoryService {
 	private String createResponseBody(Set<? extends OWLEntity> entities) {
 		StringBuilder buf = new StringBuilder();
 		for (OWLEntity owlEntity : entities) {
-			buf.append(owlEntity.getIRI().getFragment());
-			buf.append("\n");
+			if (!(owlEntity.isTopEntity() || owlEntity.isBottomEntity())) {
+				buf.append(owlEntity.getIRI().getFragment());
+				buf.append("\n");
+			}
 		}
 		return buf.toString();
 	}
