@@ -50,14 +50,21 @@ import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.component.ComponentContext;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.expression.OWLEntityChecker;
+import org.semanticweb.owlapi.expression.ParserException;
 import org.semanticweb.owlapi.expression.ShortFormEntityChecker;
 import org.semanticweb.owlapi.model.OWLClass;
 import org.semanticweb.owlapi.model.OWLClassExpression;
 import org.semanticweb.owlapi.model.OWLDataFactory;
+import org.semanticweb.owlapi.model.OWLEntity;
+import org.semanticweb.owlapi.model.OWLIndividual;
 import org.semanticweb.owlapi.model.OWLLiteral;
+import org.semanticweb.owlapi.model.OWLNamedIndividual;
 import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 import org.semanticweb.owlapi.model.OWLOntologyManager;
+import org.semanticweb.owlapi.reasoner.Node;
+import org.semanticweb.owlapi.reasoner.NodeSet;
+import org.semanticweb.owlapi.reasoner.OWLReasoner;
 import org.semanticweb.owlapi.util.BidirectionalShortFormProvider;
 import org.semanticweb.owlapi.util.BidirectionalShortFormProviderAdapter;
 import org.semanticweb.owlapi.util.SimpleShortFormProvider;
@@ -316,6 +323,7 @@ public class CategoryServiceImpl implements CategoryService {
 				         @QueryParam("scope") final String scopeID,
 				         @QueryParam("type") final String type,
 		                 @QueryParam("dlquery") final String query,
+		                 @QueryParam("direct") final boolean direct,
 		                 @HeaderParam("user-agent") String userAgent) throws Exception {
     	
     	PelletReasoner reasoner = reasonersByScope.get(scopeID);
@@ -340,9 +348,63 @@ public class CategoryServiceImpl implements CategoryService {
         parser.setOWLEntityChecker(entityChecker);
         OWLClassExpression classExpression = parser.parseClassExpression();
         
+        if ("instances".equalsIgnoreCase(type)) {
+        	Set<OWLNamedIndividual> instances = getInstances(classExpression, reasoner, direct);
+            return Response.ok(createResponseBody(instances)).build();
+        } else if ("subclasses".equalsIgnoreCase(type)) {
+        	Set<OWLClass> subclasses = getSubClasses(classExpression, reasoner, direct);
+            return Response.ok(createResponseBody(subclasses)).build();
+        } else if ("superclasses".equalsIgnoreCase(type)) {
+        	Set<OWLClass> superclasses = getSuperClasses(classExpression, reasoner, direct);
+            return Response.ok(createResponseBody(superclasses)).build();
+        } else if ("equivalentclasses".equalsIgnoreCase(type)) {
+        	Set<OWLClass> equivalentClasses = getEquivalentClasses(classExpression, reasoner);
+            return Response.ok(createResponseBody(equivalentClasses)).build();
+        } else {
+            return Response.status(500).build();
+        }
         
-        return Response.ok().build();
     }
+    
+	public Set<OWLClass> getSuperClasses(OWLClassExpression classExpression, OWLReasoner reasoner, boolean direct)
+			throws ParserException {
+		NodeSet<OWLClass> superClasses = reasoner.getSuperClasses(classExpression, direct);
+		return superClasses.getFlattened();
+	}
+
+	public Set<OWLClass> getEquivalentClasses(OWLClassExpression classExpression, OWLReasoner reasoner)
+			throws ParserException {
+		Node<OWLClass> equivalentClasses = reasoner.getEquivalentClasses(classExpression);
+		Set<OWLClass> result = null;
+		if (classExpression.isAnonymous()) {
+			result = equivalentClasses.getEntities();
+		} else {
+			result = equivalentClasses.getEntitiesMinus(classExpression.asOWLClass());
+		}
+		return result;
+	}
+
+	public Set<OWLClass> getSubClasses(OWLClassExpression classExpression, OWLReasoner reasoner, boolean direct)
+			throws ParserException {
+		NodeSet<OWLClass> subClasses = reasoner.getSubClasses(classExpression, direct);
+		return subClasses.getFlattened();
+	}
+
+	public Set<OWLNamedIndividual> getInstances(OWLClassExpression classExpression, OWLReasoner reasoner,
+			boolean direct) throws ParserException {
+		NodeSet<OWLNamedIndividual> individuals = reasoner.getInstances(classExpression, direct);
+		return individuals.getFlattened();
+	}
+	
+	private String createResponseBody(Set<? extends OWLEntity> entities) {
+		StringBuilder buf = new StringBuilder();
+		for (OWLEntity owlEntity : entities) {
+			buf.append(owlEntity.getIRI().getFragment());
+			buf.append("\n");
+		}
+		return buf.toString();
+	}
+	
 
     private String getLabel(OWLOntology rootOntology, OWLClass cls, String lang) {
         String actualLang = lang == null || lang.isEmpty() ? "de" : lang;

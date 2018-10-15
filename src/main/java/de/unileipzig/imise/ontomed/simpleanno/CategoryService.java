@@ -74,6 +74,7 @@ public interface CategoryService {
 				         @QueryParam("scope") final String scopeID,
 				         @QueryParam("type") final String type,
 		                 @QueryParam("dlquery") final String query,
+		                 @QueryParam("direct") final boolean direct,
 		                 @HeaderParam("user-agent") String userAgent) throws Exception;
 
 
