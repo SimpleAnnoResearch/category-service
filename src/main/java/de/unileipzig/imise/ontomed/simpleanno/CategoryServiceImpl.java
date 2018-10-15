@@ -52,12 +52,15 @@ import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.expression.OWLEntityChecker;
 import org.semanticweb.owlapi.expression.ShortFormEntityChecker;
 import org.semanticweb.owlapi.model.OWLClass;
+import org.semanticweb.owlapi.model.OWLClassExpression;
 import org.semanticweb.owlapi.model.OWLDataFactory;
 import org.semanticweb.owlapi.model.OWLLiteral;
 import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 import org.semanticweb.owlapi.model.OWLOntologyManager;
+import org.semanticweb.owlapi.util.BidirectionalShortFormProvider;
 import org.semanticweb.owlapi.util.BidirectionalShortFormProviderAdapter;
+import org.semanticweb.owlapi.util.ShortFormProvider;
 import org.semanticweb.owlapi.vocab.OWLRDFVocabulary;
 import org.semanticweb.owlapi.vocab.SKOSVocabulary;
 import org.slf4j.Logger;
@@ -81,6 +84,8 @@ public class CategoryServiceImpl implements CategoryService {
     private static final org.semanticweb.owlapi.model.IRI glodmedIRI = org.semanticweb.owlapi.model.IRI.create("http://glodmed.simple-anno.de/glodmed#");
 
     private static final String ROOT_PREFIX = "__root__";
+    
+    private boolean ontologiesDirty = true;
 
     public static Map<OWLClass, Integer> topClassHits = Stream.of(
             "http://simple-anno.de/ontologies/dental_care_process#Anamnese",
@@ -144,6 +149,7 @@ public class CategoryServiceImpl implements CategoryService {
     private HashMap<String, OWLOntologyManager> ontologyManagersByScope = new HashMap<>();
     private HashMap<String, OWLOntology> rootOntologiesByScope = new HashMap<>();
     private HashMap<String, PelletReasoner> reasonersByScope = new HashMap<>();
+    private HashMap<String, BidirectionalShortFormProvider> shortFormProviders = new HashMap<>();
 
 //    private TreeMap<String, OWLOntology> ontologiesByFolder = new TreeMap<>();
 
@@ -187,7 +193,15 @@ public class CategoryServiceImpl implements CategoryService {
 //
 //        man.setIRIMappers(mappers);
 
-        reloadOntologies();
+        if (ontologiesDirty) {
+        	new Thread(new Runnable() {				
+				@Override
+				public void run() {
+		        	reloadOntologies();
+				}
+			}).start();
+        	
+        }
     }
     
     @Deactivate
@@ -304,27 +318,30 @@ public class CategoryServiceImpl implements CategoryService {
 		                 @QueryParam("dlquery") final String query,
 		                 @HeaderParam("user-agent") String userAgent) throws Exception {
     	
-    	OWLOntology rootOntology = rootOntologiesByScope.get(scopeID);
+    	PelletReasoner reasoner = reasonersByScope.get(scopeID);
+    	if (reasoner == null) {
+            return Response.status(Response.Status.SERVICE_UNAVAILABLE).entity(String.format("The '%s' scope does not exist.", scopeID)).build();
+    	}
     	
+    	OWLOntology rootOntology = reasoner.getRootOntology();
         if (rootOntology == null) {
-            return Response.status(Response.Status.SERVICE_UNAVAILABLE).entity(String.format("No CCO ontology. Please upload the CCO ontology into the '%s' scope.", scopeID)).build();
+            return Response.status(Response.Status.SERVICE_UNAVAILABLE).entity(String.format("No root ontology. Please upload the an ontology into the '%s' scope.", scopeID)).build();
         }
 
-        Set<OWLOntology> importsClosure = rootOntology.getImportsClosure();
-        // Create a bidirectional short form provider to do the actual mapping.
-        // It will generate names using the input
-        // short form provider.
-        BidirectionalShortFormProviderAdapter bidiShortFormProvider = new BidirectionalShortFormProviderAdapter(rootOntology.getOWLOntologyManager(),
-                importsClosure, new ManchesterOWLSyntaxPrefixNameShortFormProvider(rootOntology.getOWLOntologyManager(), rootOntology));
+        BidirectionalShortFormProvider bidiShortFormProvider = shortFormProviders.get(scopeID);
         		
         OWLDataFactory dataFactory = rootOntology.getOWLOntologyManager()
                 .getOWLDataFactory();
         ManchesterOWLSyntaxEditorParser parser = new ManchesterOWLSyntaxEditorParser(
                 dataFactory, query);
+//        parser.setBase(rootOntology.getOntologyID().toString());
         parser.setDefaultOntology(rootOntology);
         OWLEntityChecker entityChecker = new ShortFormEntityChecker(bidiShortFormProvider);
         parser.setOWLEntityChecker(entityChecker);
-        return Response.ok(parser.parseClassExpression().toString()).build();
+        OWLClassExpression classExpression = parser.parseClassExpression();
+        
+        
+        return Response.ok().build();
     }
 
     private String getLabel(OWLOntology rootOntology, OWLClass cls, String lang) {
@@ -455,33 +472,55 @@ public class CategoryServiceImpl implements CategoryService {
     
     private void reloadOntologies(Scope scope) {
 		String scopeID = scope.getID();
+
+		log.info("Loading ontologies in scope '{}'", scopeID);
+		
 		OWLOntologyManager man = OWLManager.createOWLOntologyManager();
 		ontologyManagersByScope.put(scopeID, man);
 		scope.getCustomSpace().listManagedOntologies().forEach(ontologyID -> {
+			
+			log.info("Loading ontology with ID {}...", ontologyID.getOntologyIRI().toQuotedString());
+			
 			OWLOntology ontology = scope.getCustomSpace().getOntology(ontologyID, OWLOntology.class);
+			
+			log.info("Finished loading ontology with ID {}", ontologyID.getOntologyIRI().toQuotedString());
+
 			try {
-				OWLOntology newOntology = man.createOntology(ontology.getOntologyID());
+				OWLOntology newOntology = man.createOntology(ontology.getAxioms(), ontology.getOntologyID().getOntologyIRI());
 				if (newOntology.containsAnnotationPropertyInSignature(rootOntologyAnnotationProperteryIRI) ||
 						rootOntologiesByScope.get(scopeID) == null) {
 					// Make sure each scope has a root ontology.
 					// We arbitrarily chose the ontology that's loaded first as the temporary root ontology.
 					// If another ontology is explicitly declared as being the root ontology, then this gets overwritten
 					// If several ontologies in the same scope are accidentally explicitly declared as being the root ontology, then the one that's loaded last is arbitrarily choses to be the root ontology.
-					rootOntologiesByScope.put(scope.getID(), newOntology);
+					rootOntologiesByScope.put(scopeID, newOntology);
+					
+					log.info("Setting {} as new root ontology for scope {}", ontologyID.getOntologyIRI().toQuotedString(), scopeID);
 				}
 			} catch (OWLOntologyCreationException e) {
 				log.error("Error creating ontology " + ontologyID.getOntologyIRI().toQuotedString(), e);
 			}
 		});
+		
+		OWLOntology rootOntology = rootOntologiesByScope.get(scopeID);
+		if (rootOntology != null) {
+	        OWLOntologyManager manager = rootOntology.getOWLOntologyManager();
+	        Set<OWLOntology> importsClosure = rootOntology.getImportsClosure();
+			shortFormProviders.put(scopeID, new BidirectionalShortFormProviderAdapter(rootOntology.getOWLOntologyManager(),
+	                importsClosure, new ManchesterOWLSyntaxPrefixNameShortFormProvider(rootOntology.getOWLOntologyManager(), rootOntology)));
+		}
     }
 
     /**
      * (Re-)loads the ontologies from Stanbol ontonet
      */
     private void reloadOntologies() {
-    	scopeManager.getActiveScopes().forEach(scope -> {
+    	log.info("Start (re)-loading ontologies for all scopes...");
+    	scopeManager.getRegisteredScopes().forEach(scope -> {
     		reloadOntologies(scope);
-    	});    	
+    	});
+    	log.info("(Re)-loading of ontologies for all scopes done.");
+    	ontologiesDirty = false;
     }
 
 //    /**
