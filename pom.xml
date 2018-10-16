@@ -1,11 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
-  
+
     <groupId>de.unileipzig.imise.ontomed.simpleanno</groupId>
     <artifactId>category-service</artifactId>
     <version>1.0.1-SNAPSHOT</version>
-  
+
     <packaging>bundle</packaging>
 
     <name>SimpleAnno Category Lookup Service</name>
@@ -54,7 +56,9 @@
                 <version>3.5.0</version>
                 <configuration>
                     <instructions>
-                        <Embed-Dependency>pellet*,aterm*,shared-objects*,antlr*,jgrapht*,stringtemplate*,jjtraveler*,jersey*,relaxngDatatype*;scope=compile|runtime</Embed-Dependency>
+                        <Embed-Dependency>
+                            pellet*,aterm*,shared-objects*,antlr*,jgrapht*,stringtemplate*,jjtraveler*,jersey*,relaxngDatatype*;scope=compile|runtime
+                        </Embed-Dependency>
                         <Embed-Transitive>true</Embed-Transitive>
                         <Import-Package>
                             !com.touchgraph.graphlayout,
@@ -120,7 +124,7 @@
             <artifactId>org.apache.stanbol.entityhub.core</artifactId>
             <version>1.0.1-SNAPSHOT</version>
         </dependency>
-            <dependency>
+        <dependency>
             <groupId>org.apache.stanbol</groupId>
             <artifactId>org.apache.stanbol.entityhub.servicesapi</artifactId>
             <version>1.0.1-SNAPSHOT</version>
@@ -176,34 +180,34 @@
             <artifactId>org.apache.felix.scr.annotations</artifactId>
             <version>1.9.12</version>
         </dependency>
-		<dependency>
-		    <groupId>com.sun.xml.bind</groupId>
-		    <artifactId>jaxb1-impl</artifactId>
-		    <version>2.0</version>
-		</dependency>        
+        <dependency>
+            <groupId>com.sun.xml.bind</groupId>
+            <artifactId>jaxb1-impl</artifactId>
+            <version>2.0</version>
+        </dependency>
 
-		<dependency>
-		  <groupId>com.github.ansell.pellet</groupId>
-		  <artifactId>pellet-owlapiv3</artifactId>
-		  <version>2.3.6-ansell</version>
-		  <exclusions>
-		  	<exclusion>
-				<groupId>com.github.ansell.owlapi</groupId>
-				<artifactId>owlapi-api</artifactId>
-		  	</exclusion>
-		  	<exclusion>
-				<groupId>com.github.ansell.owlapi</groupId>
-				<artifactId>owlapi-impl</artifactId>
-		  	</exclusion>
-		  	<exclusion>
-				<groupId>com.github.ansell.owlapi</groupId>
-				<artifactId>owlapi-parsers</artifactId>
-		  	</exclusion>
-		  </exclusions>
-		</dependency>
+        <dependency>
+            <groupId>com.github.ansell.pellet</groupId>
+            <artifactId>pellet-owlapiv3</artifactId>
+            <version>2.3.6-ansell</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.github.ansell.owlapi</groupId>
+                    <artifactId>owlapi-api</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.github.ansell.owlapi</groupId>
+                    <artifactId>owlapi-impl</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.github.ansell.owlapi</groupId>
+                    <artifactId>owlapi-parsers</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
 
-		
-		<!-- https://mvnrepository.com/artifact/com.github.ansell.aterms/aterm-java -->
+
+        <!-- https://mvnrepository.com/artifact/com.github.ansell.aterms/aterm-java -->
         <!-- dependency>
             <groupId>com.github.ansell.aterms</groupId>
             <artifactId>aterm-java</artifactId>
@@ -216,9 +220,9 @@
             </exclusions>
         </dependency-->
         <dependency>
-		    <groupId>com.github.ansell.aterms</groupId>
-		    <artifactId>aterm-java</artifactId>
-		    <version>1.8.2-p1</version>
+            <groupId>com.github.ansell.aterms</groupId>
+            <artifactId>aterm-java</artifactId>
+            <version>1.8.2-p1</version>
         </dependency>
         <dependency>
             <groupId>org.antlr</groupId>
@@ -240,18 +244,18 @@
             <artifactId>jjtraveler</artifactId>
             <version>0.6</version>
         </dependency>
-		<dependency>
-		  <groupId>msv</groupId>
-		  <artifactId>relaxngDatatype</artifactId>
-		  <version>20030225</version>
-		</dependency>
-		<dependency>
-		    <groupId>com.github.ansell.aterms</groupId>
-		    <artifactId>shared-objects</artifactId>
-		    <version>1.4.9-p1</version>
-		</dependency>		
-		
-		
+        <dependency>
+            <groupId>msv</groupId>
+            <artifactId>relaxngDatatype</artifactId>
+            <version>20030225</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.ansell.aterms</groupId>
+            <artifactId>shared-objects</artifactId>
+            <version>1.4.9-p1</version>
+        </dependency>
+
+
         <!-- (Ralph) We embed the guava dependency although guava is OSGI enabled because otherwise there is a conflict
          with stanbol's dependency on an older version of guava -->
         <!-- dependency>
@@ -277,5 +281,5 @@
             <version>2.27</version>
         </dependency>
     </dependencies>
-    
+
 </project>
