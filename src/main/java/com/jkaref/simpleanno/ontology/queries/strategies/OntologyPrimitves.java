@@ -8,6 +8,7 @@ import org.semanticweb.owlapi.reasoner.NodeSet;
 import org.semanticweb.owlapi.reasoner.OWLReasoner;
 
 import java.util.Set;
+import java.util.stream.Stream;
 
 /**
  * @author Matthias Muenzner <matthias.muenzner@jkaref.com>
@@ -19,22 +20,22 @@ public class OntologyPrimitves {
      * @param reasoner
      * @return
      */
-    public static Set<OWLClass> getEquivalentClasses(
+    public static Stream<OWLClass> getEquivalentClasses(
             final OWLClassExpression classExpression,
             final OWLReasoner reasoner) {
 
         Node<OWLClass> equivalentClasses =
                 reasoner.getEquivalentClasses(classExpression);
 
-        Set<OWLClass> result;
+        Stream<OWLClass> result;
 
         if (classExpression.isAnonymous())
-            result = equivalentClasses.getEntities();
+            result = equivalentClasses.entities();
 
         else
             result = equivalentClasses.getEntitiesMinus(
                     classExpression.asOWLClass()
-            );
+            ).stream();
 
         return result;
     }
@@ -45,7 +46,7 @@ public class OntologyPrimitves {
      * @param direct
      * @return
      */
-    public static Set<OWLClass> getSubClasses(
+    public static Stream<OWLClass> getSubClasses(
             final OWLClassExpression classExpression,
             OWLReasoner reasoner, boolean direct) {
 
@@ -54,7 +55,7 @@ public class OntologyPrimitves {
                 direct
         );
 
-        return subClasses.getFlattened();
+        return subClasses.entities();
     }
 
     /**
@@ -63,7 +64,7 @@ public class OntologyPrimitves {
      * @param direct
      * @return
      */
-    public static Set<OWLNamedIndividual> getInstances(
+    public static Stream<OWLNamedIndividual> getInstances(
             final OWLClassExpression classExpression,
             final OWLReasoner reasoner,
             boolean direct) {
@@ -73,6 +74,6 @@ public class OntologyPrimitves {
                 direct
         );
 
-        return individuals.getFlattened();
+        return individuals.entities();
     }
 }

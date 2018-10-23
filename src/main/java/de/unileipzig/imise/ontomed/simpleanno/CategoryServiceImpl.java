@@ -1,11 +1,25 @@
 package de.unileipzig.imise.ontomed.simpleanno;
 
-import com.clarkparsia.pellet.owlapiv3.PelletReasoner;
-import com.clarkparsia.pellet.owlapiv3.PelletReasonerFactory;
-import com.jkaref.simpleanno.ontology.queries.strategies.LookupStrategies;
-import com.jkaref.simpleanno.ontology.queries.strategies.OntologyPrimitves;
-import com.jkaref.simpleanno.ontology.queries.strategies.OntologyQueryStrategy;
-import com.jkaref.simpleanno.ontology.queries.strategies.OntologyQueryStrategyFactory;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Hashtable;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import javax.ws.rs.GET;
+import javax.ws.rs.HeaderParam;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.UriInfo;
+
 import org.apache.clerezza.commons.rdf.Graph;
 import org.apache.clerezza.commons.rdf.IRI;
 import org.apache.clerezza.commons.rdf.impl.utils.PlainLiteralImpl;
@@ -17,13 +31,17 @@ import org.apache.clerezza.rdf.core.access.security.TcPermission;
 import org.apache.clerezza.rdf.ontologies.RDF;
 import org.apache.clerezza.rdf.ontologies.RDFS;
 import org.apache.clerezza.rdf.utils.GraphNode;
-import org.apache.felix.scr.annotations.*;
+import org.apache.felix.scr.annotations.Activate;
+import org.apache.felix.scr.annotations.Component;
+import org.apache.felix.scr.annotations.Deactivate;
+import org.apache.felix.scr.annotations.Property;
+import org.apache.felix.scr.annotations.Reference;
+import org.apache.felix.scr.annotations.Service;
 import org.apache.stanbol.commons.indexedgraph.IndexedGraph;
 import org.apache.stanbol.commons.web.viewable.RdfViewable;
 import org.apache.stanbol.entityhub.servicesapi.site.SiteManager;
 import org.apache.stanbol.ontologymanager.servicesapi.scope.Scope;
 import org.apache.stanbol.ontologymanager.servicesapi.scope.ScopeManager;
-import org.coode.owlapi.manchesterowlsyntax.ManchesterOWLSyntaxEditorParser;
 import org.glassfish.jersey.media.multipart.MultiPartFeature;
 import org.json.simple.JSONArray;
 import org.osgi.framework.BundleContext;
@@ -33,26 +51,35 @@ import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.expression.OWLEntityChecker;
 import org.semanticweb.owlapi.expression.ParserException;
 import org.semanticweb.owlapi.expression.ShortFormEntityChecker;
-import org.semanticweb.owlapi.model.*;
+import org.semanticweb.owlapi.model.AddImport;
+import org.semanticweb.owlapi.model.OWLClass;
+import org.semanticweb.owlapi.model.OWLClassExpression;
+import org.semanticweb.owlapi.model.OWLDataFactory;
+import org.semanticweb.owlapi.model.OWLEntity;
+import org.semanticweb.owlapi.model.OWLLiteral;
+import org.semanticweb.owlapi.model.OWLNamedIndividual;
+import org.semanticweb.owlapi.model.OWLOntology;
+import org.semanticweb.owlapi.model.OWLOntologyCreationException;
+import org.semanticweb.owlapi.model.OWLOntologyManager;
 import org.semanticweb.owlapi.reasoner.NodeSet;
 import org.semanticweb.owlapi.reasoner.OWLReasoner;
 import org.semanticweb.owlapi.util.BidirectionalShortFormProvider;
 import org.semanticweb.owlapi.util.BidirectionalShortFormProviderAdapter;
 import org.semanticweb.owlapi.util.SimpleShortFormProvider;
+import org.semanticweb.owlapi.util.mansyntax.ManchesterOWLSyntaxParser;
 import org.semanticweb.owlapi.vocab.OWLRDFVocabulary;
 import org.semanticweb.owlapi.vocab.SKOSVocabulary;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import uk.ac.manchester.cs.owl.owlapi.OWLClassImpl;
 
-import javax.ws.rs.*;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.UriInfo;
-import java.util.*;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import com.clarkparsia.pellet.owlapiv3.PelletReasoner;
+import com.clarkparsia.pellet.owlapiv3.PelletReasonerFactory;
+import com.jkaref.simpleanno.ontology.queries.strategies.LookupStrategies;
+import com.jkaref.simpleanno.ontology.queries.strategies.OntologyPrimitves;
+import com.jkaref.simpleanno.ontology.queries.strategies.OntologyQueryStrategy;
+import com.jkaref.simpleanno.ontology.queries.strategies.OntologyQueryStrategyFactory;
+
+import uk.ac.manchester.cs.owl.owlapi.OWLClassImpl;
 
 /**
  * @author Ralph Schaefermeier
@@ -414,29 +441,28 @@ public class CategoryServiceImpl implements CategoryService {
         OWLDataFactory dataFactory = rootOntology
                 .getOWLOntologyManager()
                 .getOWLDataFactory();
-        ManchesterOWLSyntaxEditorParser parser = new ManchesterOWLSyntaxEditorParser(
-                dataFactory, query);
+        ManchesterOWLSyntaxParser parser = OWLManager.createManchesterParser();
 
-        parser.setBase(rootOntology.getOntologyID().toString());
-
+//        dataFactory, query
+        
         parser.setDefaultOntology(rootOntology);
 
         OWLEntityChecker entityChecker = new ShortFormEntityChecker(bidiShortFormProvider);
         parser.setOWLEntityChecker(entityChecker);
 
-        OWLClassExpression classExpression = parser.parseClassExpression();
+        OWLClassExpression classExpression = parser.parseClassExpression(query); 
 
         if ("instances".equalsIgnoreCase(type)) {
-            Set<OWLNamedIndividual> instances = OntologyPrimitves.getInstances(classExpression, reasoner, direct);
+        	Stream<OWLNamedIndividual> instances = OntologyPrimitves.getInstances(classExpression, reasoner, direct);
             return Response.ok(createResponseBody(instances)).build();
         } else if ("subcategories".equalsIgnoreCase(type)) {
-            Set<OWLClass> subclasses = OntologyPrimitves.getSubClasses(classExpression, reasoner, direct);
+        	Stream<OWLClass> subclasses = OntologyPrimitves.getSubClasses(classExpression, reasoner, direct);
             return Response.ok(createResponseBody(subclasses)).build();
         } else if ("supercategories".equalsIgnoreCase(type)) {
-            Set<OWLClass> superclasses = getSuperClasses(classExpression, reasoner, direct);
+        	Stream<OWLClass> superclasses = getSuperClasses(classExpression, reasoner, direct);
             return Response.ok(createResponseBody(superclasses)).build();
         } else if ("equivalentcategories".equalsIgnoreCase(type)) {
-            Set<OWLClass> equivalentClasses = OntologyPrimitves.getEquivalentClasses(classExpression, reasoner);
+        	Stream<OWLClass> equivalentClasses = OntologyPrimitves.getEquivalentClasses(classExpression, reasoner);
             return Response.ok(createResponseBody(equivalentClasses)).build();
         } else {
             return Response.status(500).build();
@@ -444,10 +470,9 @@ public class CategoryServiceImpl implements CategoryService {
 
     }
 
-    public Set<OWLClass> getSuperClasses(OWLClassExpression classExpression, OWLReasoner reasoner, boolean direct)
-            throws ParserException {
+    public Stream<OWLClass> getSuperClasses(OWLClassExpression classExpression, OWLReasoner reasoner, boolean direct) {
         NodeSet<OWLClass> superClasses = reasoner.getSuperClasses(classExpression, direct);
-        return superClasses.getFlattened();
+        return superClasses.entities();
     }
 
     @GET
@@ -460,15 +485,18 @@ public class CategoryServiceImpl implements CategoryService {
         return Response.ok().build();
     }
 
-    private String createResponseBody(Set<? extends OWLEntity> entities) {
+    private String createResponseBody(Stream<? extends OWLEntity> entities) {
+    	
+    	// TODO Produce json output
+    	
         StringBuilder buf = new StringBuilder();
-        for (OWLEntity owlEntity : entities) {
+        entities.forEach(owlEntity -> {
             if (!(owlEntity.isTopEntity()
                     || owlEntity.isBottomEntity())) {
                 buf.append(owlEntity.getIRI().getFragment());
                 buf.append("\n");
             }
-        }
+        });
         return buf.toString();
     }
 
@@ -481,8 +509,7 @@ public class CategoryServiceImpl implements CategoryService {
         StringBuilder buf = new StringBuilder();
 
         rootOntology
-                .getAnnotationAssertionAxioms(cls.getIRI())
-                .stream()
+                .annotationAssertionAxioms(cls.getIRI())
                 .filter(
                         annotationAxiom -> (annotationAxiom.getProperty().getIRI().equals(SKOSVocabulary.PREFLABEL.getIRI())
                                 || annotationAxiom.getProperty().getIRI().equals(OWLRDFVocabulary.RDFS_LABEL.getIRI()))
@@ -660,7 +687,7 @@ public class CategoryServiceImpl implements CategoryService {
                 .forEach(ontologyID -> {
 
                     LOG.info("Loading ontology with ID {}...",
-                            ontologyID.getOntologyIRI().toQuotedString());
+                            ontologyID.getOntologyIRI().get().toQuotedString());
 
                     OWLOntology ontology = scope
                             .getCustomSpace()
@@ -670,13 +697,13 @@ public class CategoryServiceImpl implements CategoryService {
 
                     LOG.info(
                             "Finished loading ontology with ID {}",
-                            ontologyID.getOntologyIRI().toQuotedString()
+                            ontologyID.getOntologyIRI().get().toQuotedString()
                     );
 
                     try {
                         OWLOntology newOntology = man.createOntology(
-                                ontology.getAxioms(),
-                                ontology.getOntologyID().getOntologyIRI()
+                                ontology.axioms(),
+                                ontology.getOntologyID().getOntologyIRI().get()
                         );
                         if (newOntology.containsAnnotationPropertyInSignature(rootOntologyAnnotationProperteryIRI)
                                 || rootOntologiesByScope.get(scopeID) == null) {
@@ -694,12 +721,12 @@ public class CategoryServiceImpl implements CategoryService {
 
                             LOG.info(
                                     "Setting {} as new root ontology for scope {}",
-                                    ontologyID.getOntologyIRI().toQuotedString(),
+                                    ontologyID.getOntologyIRI().get().toQuotedString(),
                                     scopeID
                             );
                         }
                     } catch (OWLOntologyCreationException e) {
-                        LOG.error("Error creating ontology " + ontologyID.getOntologyIRI().toQuotedString(), e);
+                        LOG.error("Error creating ontology " + ontologyID.getOntologyIRI().get().toQuotedString(), e);
                     }
                 });
 
@@ -707,6 +734,15 @@ public class CategoryServiceImpl implements CategoryService {
 
         if (rootOntology != null) {
 
+            OWLOntologyManager manager = rootOntology.getOWLOntologyManager();
+            Set<OWLOntology> importsClosure = man.getOntologies();
+
+            for(OWLOntology ontology : importsClosure) {
+            	if (ontology != rootOntology) {
+            		man.applyChange(new AddImport(rootOntology, man.getOWLDataFactory().getOWLImportsDeclaration(ontology.getOntologyID().getOntologyIRI().get())));
+            	}
+            }
+            
             PelletReasoner reasoner =
                     PelletReasonerFactory.getInstance()
                             .createReasoner(rootOntology);
@@ -715,8 +751,6 @@ public class CategoryServiceImpl implements CategoryService {
 
             rootOntology = reasoner.getRootOntology(); // don't know if this is the same ontology, but just in case.
 
-            OWLOntologyManager manager = rootOntology.getOWLOntologyManager();
-            Set<OWLOntology> importsClosure = rootOntology.getImportsClosure();
             shortFormProviders.put(
                     scopeID, new BidirectionalShortFormProviderAdapter(
                             manager,
